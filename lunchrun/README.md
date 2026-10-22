@@ -2,7 +2,7 @@
 
 Kleine Web-App auf Basis von Google Apps Script und einem Google Sheet.
 Kolleg:innen bestellen bis 10:45 Uhr, wer abholt, trägt sich morgens ein und
-sieht die gesammelte Liste, die Office-Managerin pflegt das Menü.
+sieht die gesammelte Liste, das Office-Management pflegt das Menü.
 
 - `Code.gs` – Server: liest und schreibt das Sheet, prüft Bestellschluss und PIN
 - `index.html` – die Oberfläche fürs Handy
