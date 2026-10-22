@@ -1,7 +1,7 @@
 # LunchRun – Mittagsbestellung fürs Büro
 
 Kleine Web-App auf Basis von Google Apps Script und einem Google Sheet.
-Kolleg:innen bestellen bis 10:45 Uhr, wer abholt, trägt sich morgens ein und
+Kolleg:innen bestellen bis 16:00 Uhr, wer abholt, trägt sich morgens ein und
 sieht die gesammelte Liste, das Office-Management pflegt das Menü.
 
 - `Code.gs` – Server: liest und schreibt das Sheet, prüft Bestellschluss und PIN
@@ -35,7 +35,7 @@ sieht die gesammelte Liste, das Office-Management pflegt das Menü.
 ## So funktioniert es
 
 - **Anmeldung:** Beim ersten Öffnen wählt jede Person ihren Namen. Das Handy merkt ihn sich („Nicht du?“ wechselt). Mit privaten Gmail-Konten kann das Skript nicht selbst erkennen, wer die Seite öffnet. Die Namenswahl ist deshalb nicht fälschungssicher, fürs Büro aber ausreichend.
-- **Bestellen:** eine Bestellung pro Person und Tag; bis zum Bestellschluss änderbar oder stornierbar. Nach 10:45 lehnt der Server Änderungen ab, egal was das Handy anzeigt.
+- **Bestellen:** eine Bestellung pro Person und Tag; bis zum Bestellschluss änderbar oder stornierbar. Nach 16:00 Uhr lehnt der Server Änderungen ab, egal was das Handy anzeigt.
 - **Abholen:** Im Tab *Bestellungen* trägt sich die erste Person mit „Ich hole heute ab“ ein. Mit „Ich kann doch nicht“ trägt sie sich wieder aus.
 - **Menü bearbeiten:** Tab *Menü*, PIN eingeben, Namen/Preise ändern, Artikel als nicht verfügbar markieren oder neue hinzufügen, speichern. Zum Löschen eines Artikels die Zeile im Blatt **Menü** entfernen.
 - Alle Bestellungen bleiben im Blatt **Bestellungen** stehen, nach Datum. Das ist zugleich das Archiv.

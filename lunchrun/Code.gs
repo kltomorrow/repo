@@ -13,7 +13,7 @@
 
 const CONFIG = {
   SHOP_NAME: "Marlow's Sandwich Bar",
-  CUTOFF: '10:45',            // HH:mm in TIMEZONE
+  CUTOFF: '16:00',            // HH:mm in TIMEZONE
   TIMEZONE: 'Europe/Berlin',
   CURRENCY: 'EUR',            // ISO code, used for price formatting
   LOCALE: 'de-DE',            // number format for prices
