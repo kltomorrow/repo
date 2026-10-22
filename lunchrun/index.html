@@ -106,6 +106,8 @@
     .badge.on { border-color: var(--accent); background: var(--accent-tint); color: var(--accent-dark); }
     .badge.off { border-color: var(--muted); background: var(--disabled); color: var(--body); }
     .price-input { max-width: 140px; }
+    footer { padding: 8px 20px 24px; text-align: center; }
+    .privacy { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 12px; font-size: 17px; color: var(--body); }
   </style>
 </head>
 <body>
@@ -141,7 +143,8 @@ var S = null;          // state from the server
 var me = null;         // chosen name
 var tab = 'order';     // order | orders | menu
 var selected = null, note = '', changing = false;
-var pin = '', mItems = null, mErrors = {}, mTried = false;
+var pin = '', managerPin = '', mItems = null, mErrors = {}, mTried = false;
+var showPrivacy = false;
 var busy = false, error = '', flash = '', deadline = 0, loadFailed = false;
 
 try { me = localStorage.getItem(NAME_KEY); } catch (e) {}
@@ -185,7 +188,7 @@ function setState(st) {
 }
 var LOAD_TIMEOUT_MS = 20000;
 function load() {
-  call('getState', [], setState);
+  call('getState', [me || '', managerPin], setState);
   setTimeout(function () {
     if (S || loadFailed) return;
     busy = false; loadFailed = true;
@@ -336,13 +339,16 @@ function ordersTab() {
   }).join('');
 
   return errorBox() +
-    '<div><h1>Heutige Bestellungen</h1><p class="lead">' + plural(S.orders.length, 'Bestellung', 'Bestellungen') + ' bei ' + esc(S.shop) + '.</p></div>' +
+    '<div><h1>Heutige Bestellungen</h1><p class="lead">' + plural(S.orderCount, 'Bestellung', 'Bestellungen') + ' bei ' + esc(S.shop) + '.</p></div>' +
     (open
       ? '<div class="banner open">' + ICONS.clock + '<span><strong>Noch offen · ' + plural(minutesLeft(), 'Min.', 'Min.') + ' übrig.</strong> Die Liste kann sich bis ' + esc(S.cutoff) + ' Uhr noch ändern.</span></div>'
       : '<div class="banner closed">' + ICONS.lock + '<span><strong>Geschlossen · endgültige Liste.</strong> Bereit zum Bestellen im Laden.</span></div>') +
     runnerBox +
-    (list || '<p class="lead">Noch keine Bestellungen.</p>') +
-    '<div class="total"><span style="display:flex;flex-direction:column"><span class="label">Gesamt</span><span class="sub">' + plural(S.orders.length, 'Bestellung', 'Bestellungen') + '</span></span><span class="sum">' + money(total) + '</span></div>' +
+    (!S.canSeeAll
+      ? '<div class="card"><div><h2>Liste nicht sichtbar</h2><p class="lead">Die Bestellungen mit Namen und Notizen sehen nur ' +
+        esc(S.runner || 'die Person, die heute abholt') + ' und das Office-Management.</p></div></div>'
+      : (list || '<p class="lead">Noch keine Bestellungen.</p>') +
+    '<div class="total"><span style="display:flex;flex-direction:column"><span class="label">Gesamt</span><span class="sub">' + plural(S.orders.length, 'Bestellung', 'Bestellungen') + '</span></span><span class="sum">' + money(total) + '</span></div>') +
     '<button type="button" class="btn plain" data-action="refresh"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Wird aktualisiert…' : 'Liste aktualisieren') + '</button>';
 }
 
@@ -382,6 +388,23 @@ function menuTab() {
     '<button type="button" class="btn plain" data-action="lock">Sperren</button></div>';
 }
 
+function privacyView() {
+  return '<h1>Was LunchRun über dich speichert</h1>' +
+    '<ul class="privacy">' +
+    '<li>Deinen Namen, damit klar ist, welche Bestellung wem gehört. Dieses Handy merkt sich deinen Namen, bis du auf „Nicht du?“ tippst.</li>' +
+    '<li>Deine Bestellungen und Notizen, damit die Person, die abholt, für dich bestellen kann. Sehen können sie nur die Person, die heute abholt, und das Office-Management.</li>' +
+    '<li>Gespeichert wird alles in einer Google-Tabelle des Office-Managements.</li>' +
+    '<li>Bestellungen werden nach 30 Tagen gelöscht.</li>' +
+    '<li>Bitte schreib keine Gesundheitsdaten in die Notizen. Wenn du eine Allergie hast, sag es der Person, die abholt, direkt.</li>' +
+    '<li>Fragen, oder sollen deine Daten gelöscht werden? Wende dich an Jo aus dem Office-Management.</li>' +
+    '</ul>' +
+    '<button type="button" class="btn plain" data-action="closePrivacy">Zurück</button>';
+}
+
+function footerView() {
+  return '<footer><button type="button" class="link-btn" data-action="openPrivacy">Datenschutz: Was LunchRun speichert</button></footer>';
+}
+
 function render(focusId) {
   var root = document.getElementById('app');
   if (!S) {
@@ -390,9 +413,10 @@ function render(focusId) {
       : '<p class="lead">Wird geladen…</p>') + '</main>';
     return;
   }
-  if (!me) { root.innerHTML = headerView() + '<main>' + errorBox() + pickerView() + '</main>'; return; }
+  if (showPrivacy) { root.innerHTML = headerView() + '<main>' + privacyView() + '</main>'; return; }
+  if (!me) { root.innerHTML = headerView() + '<main>' + errorBox() + pickerView() + '</main>' + footerView(); return; }
   var body = tab === 'orders' ? ordersTab() : tab === 'menu' ? menuTab() : orderTab();
-  root.innerHTML = headerView() + navView() + '<main>' + body + '</main>';
+  root.innerHTML = headerView() + navView() + '<main>' + body + '</main>' + footerView();
   if (focusId) { var el = document.getElementById(focusId); if (el) el.focus(); }
 }
 
@@ -401,18 +425,21 @@ var actions = {
   pickPerson: function (d) {
     me = d.name; tab = 'order'; error = '';
     try { localStorage.setItem(NAME_KEY, me); } catch (e) {}
-    render();
+    load();
   },
   switchPerson: function () {
     me = null; selected = null; note = ''; changing = false; error = '';
+    pin = ''; managerPin = ''; mItems = null; mTried = false;   // a new person must not inherit manager access
     try { localStorage.removeItem(NAME_KEY); } catch (e) {}
-    render();
+    load();
   },
+  openPrivacy: function () { showPrivacy = true; render(); window.scrollTo(0, 0); },
+  closePrivacy: function () { showPrivacy = false; render(); },
   tab: function (d) { tab = d.tab; error = ''; flash = ''; changing = false; render(); },
   place: function () {
     var sel = itemById(selected);
     if (!sel || !sel.available) { error = 'Bitte wähle zuerst etwas aus.'; render(); return; }
-    call('placeOrder', [me, sel.id, note], function (st) { setState(st); changing = false; });
+    call('placeOrder', [me, sel.id, note, managerPin], function (st) { setState(st); changing = false; });
   },
   change: function () {
     var o = myOrder();
@@ -420,14 +447,14 @@ var actions = {
   },
   cancelChange: function () { changing = false; error = ''; render(); },
   cancelOrder: function () {
-    call('cancelOrder', [me], function (st) { setState(st); selected = null; note = ''; flash = 'Deine Bestellung wurde storniert.'; });
+    call('cancelOrder', [me, managerPin], function (st) { setState(st); selected = null; note = ''; flash = 'Deine Bestellung wurde storniert.'; });
   },
-  volunteer: function () { call('volunteerAsRunner', [me], setState); },
-  stepDown: function () { call('stepDownAsRunner', [me], setState); },
+  volunteer: function () { call('volunteerAsRunner', [me, managerPin], setState); },
+  stepDown: function () { call('stepDownAsRunner', [me, managerPin], setState); },
   refresh: function () { load(); },
   unlock: function () {
     if (!pin) { error = 'Bitte die PIN eingeben.'; render('pin'); return; }
-    call('getMenuForManager', [pin], function (items) { mItems = toEditable(items); mTried = false; });
+    call('getMenuForManager', [pin], function (items) { mItems = toEditable(items); mTried = false; managerPin = pin; load(); });
   },
   addItem: function () {
     mItems.push({ id: '', name: '', price: '', available: true });
@@ -440,9 +467,9 @@ var actions = {
     var payload = mItems.map(function (it) {
       return { id: it.id, name: String(it.name).trim(), price: parsePrice(it.price), available: it.available };
     });
-    call('saveMenu', [pin, payload], function (st) { setState(st); mItems = toEditable(st.menu); mTried = false; flash = 'Menü gespeichert.'; });
+    call('saveMenu', [pin, payload, me], function (st) { setState(st); mItems = toEditable(st.menu); mTried = false; flash = 'Menü gespeichert.'; });
   },
-  lock: function () { mItems = null; pin = ''; mTried = false; error = ''; render(); }
+  lock: function () { mItems = null; pin = ''; managerPin = ''; mTried = false; error = ''; load(); }
 };
 
 function toEditable(items) {

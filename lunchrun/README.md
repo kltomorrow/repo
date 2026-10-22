@@ -38,7 +38,9 @@ sieht die gesammelte Liste, das Office-Management pflegt das Menü.
 - **Bestellen:** eine Bestellung pro Person und Tag; bis zum Bestellschluss änderbar oder stornierbar. Nach 16:00 Uhr lehnt der Server Änderungen ab, egal was das Handy anzeigt.
 - **Abholen:** Im Tab *Bestellungen* trägt sich die erste Person mit „Ich hole heute ab“ ein. Mit „Ich kann doch nicht“ trägt sie sich wieder aus.
 - **Menü bearbeiten:** Tab *Menü*, PIN eingeben, Namen/Preise ändern, Artikel als nicht verfügbar markieren oder neue hinzufügen, speichern. Zum Löschen eines Artikels die Zeile im Blatt **Menü** entfernen.
-- Alle Bestellungen bleiben im Blatt **Bestellungen** stehen, nach Datum. Das ist zugleich das Archiv.
+- **Wer sieht was:** Jede Person sieht nur ihre eigene Bestellung. Die ganze Liste mit Namen und Notizen sehen nur die Person, die heute abholt, und das Office-Management (nach Eingabe der PIN im Tab *Menü*).
+- **Löschen nach 30 Tagen:** Jede Nacht gegen 3 Uhr löscht das Skript Bestellungen und Abholungs-Einträge, die älter als 30 Tage sind (`KEEP_DAYS` in `CONFIG`). Den nächtlichen Auftrag legt `setup` an.
+- **Datenschutz-Hinweis:** In der App unten über „Datenschutz: Was LunchRun speichert“.
 
 ## Grenzen
 
@@ -46,3 +48,5 @@ sieht die gesammelte Liste, das Office-Management pflegt das Menü.
 - Wer die URL hat, kann die App öffnen. Teile sie nur im Büro.
 - Keine Bezahlfunktion: bezahlt wird bei der Person, die abholt.
 - Wochenenden und Feiertage werden nicht gesondert behandelt.
+- Da sich jede Person über die Namensliste anmeldet, könnte jemand den Namen der Person wählen, die heute abholt, und so die Liste sehen. Für mehr Schutz bräuchte es echte Logins.
+- Google Tabellen behält einen Versionsverlauf. Gelöschte Zeilen bleiben dort sichtbar für alle, die die Tabelle bearbeiten dürfen. Die Tabelle daher nicht mit anderen teilen.

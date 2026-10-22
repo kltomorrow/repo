@@ -18,6 +18,7 @@ const CONFIG = {
   CURRENCY: 'EUR',            // ISO code, used for price formatting
   LOCALE: 'de-DE',            // number format for prices
   DEFAULT_PIN: '1234',        // change it in Project Settings → Script Properties
+  KEEP_DAYS: 30,              // orders older than this are deleted every night
 };
 
 const SHEETS = { MENU: 'Menü', PEOPLE: 'Personen', ORDERS: 'Bestellungen', RUNNERS: 'Abholung' };
@@ -55,13 +56,40 @@ function setup() {
 
   const props = PropertiesService.getScriptProperties();
   if (!props.getProperty('MANAGER_PIN')) props.setProperty('MANAGER_PIN', CONFIG.DEFAULT_PIN);
+
+  // Delete orders older than KEEP_DAYS every night (see the privacy note in the app).
+  const hasCleanup = ScriptApp.getProjectTriggers().some((t) => t.getHandlerFunction() === 'deleteOldOrders');
+  if (!hasCleanup) ScriptApp.newTrigger('deleteOldOrders').timeBased().everyDays(1).atHour(3).create();
+  deleteOldOrders();
+}
+
+/** Runs nightly: removes orders and runner entries older than CONFIG.KEEP_DAYS days. */
+function deleteOldOrders() {
+  const oldest = Utilities.formatDate(new Date(Date.now() - CONFIG.KEEP_DAYS * 864e5), CONFIG.TIMEZONE, 'yyyy-MM-dd');
+  withLock_(() => {
+    [SHEETS.ORDERS, SHEETS.RUNNERS].forEach((name) => {
+      const sheet = sheet_(name);
+      const rows = rows_(name);
+      for (let i = rows.length - 1; i >= 0; i--) {
+        const key = dateKey_(rows[i][0]);
+        if (key && key < oldest) sheet.deleteRow(i + 2);
+      }
+    });
+  });
 }
 
 // ---------------------------------------------------------------- API
 
-/** Everything the page needs. Called on load and after every change. */
-function getState() {
+/**
+ * Everything the page needs. Called on load and after every change.
+ * The full order list only goes to today's runner and to the office manager (PIN);
+ * everyone else gets just their own order.
+ */
+function getState(name, pin) {
   const secondsLeft = secondsToCutoff_();
+  const runner = runner_();
+  const all = todaysOrders_();
+  const canSeeAll = (!!name && name === runner) || pinOk_(pin);
   return {
     shop: CONFIG.SHOP_NAME,
     cutoff: CONFIG.CUTOFF,
@@ -73,12 +101,14 @@ function getState() {
     isOpen: secondsLeft > 0,
     menu: menu_(),
     people: people_(),
-    runner: runner_(),
-    orders: todaysOrders_(),
+    runner: runner,
+    canSeeAll: canSeeAll,
+    orderCount: all.length,
+    orders: canSeeAll ? all : all.filter((o) => o.name === name),
   };
 }
 
-function placeOrder(name, itemId, note) {
+function placeOrder(name, itemId, note, pin) {
   return withLock_(() => {
     requirePerson_(name);
     requireOpen_();
@@ -89,36 +119,36 @@ function placeOrder(name, itemId, note) {
     const row = findRow_(SHEETS.ORDERS, (r) => dateKey_(r[0]) === today_() && r[1] === name);
     if (row) sheet.getRange(row, 1, 1, values.length).setValues([values]);
     else sheet.appendRow(values);
-    return getState();
+    return getState(name, pin);
   });
 }
 
-function cancelOrder(name) {
+function cancelOrder(name, pin) {
   return withLock_(() => {
     requirePerson_(name);
     requireOpen_();
     const row = findRow_(SHEETS.ORDERS, (r) => dateKey_(r[0]) === today_() && r[1] === name);
     if (row) sheet_(SHEETS.ORDERS).deleteRow(row);
-    return getState();
+    return getState(name, pin);
   });
 }
 
-function volunteerAsRunner(name) {
+function volunteerAsRunner(name, pin) {
   return withLock_(() => {
     requirePerson_(name);
     const current = runner_();
     if (current && current !== name) throw new Error(current + ' holt heute schon ab.');
     if (!current) sheet_(SHEETS.RUNNERS).appendRow([today_(), name]);
-    return getState();
+    return getState(name, pin);
   });
 }
 
-function stepDownAsRunner(name) {
+function stepDownAsRunner(name, pin) {
   return withLock_(() => {
     requirePerson_(name);
     const row = findRow_(SHEETS.RUNNERS, (r) => dateKey_(r[0]) === today_() && r[1] === name);
     if (row) sheet_(SHEETS.RUNNERS).deleteRow(row);
-    return getState();
+    return getState(name, pin);
   });
 }
 
@@ -127,7 +157,7 @@ function getMenuForManager(pin) {
   return menu_();
 }
 
-function saveMenu(pin, items) {
+function saveMenu(pin, items, name) {
   return withLock_(() => {
     checkPin_(pin);
     if (!Array.isArray(items) || !items.length) throw new Error('Das Menü braucht mindestens einen Artikel.');
@@ -146,7 +176,7 @@ function saveMenu(pin, items) {
     if (sheet.getLastRow() > 1) sheet.getRange(2, 1, sheet.getLastRow() - 1, 4).clearContent().clearDataValidations();
     sheet.getRange(2, 1, rows.length, 4).setValues(rows);
     formatMenu_();
-    return getState();
+    return getState(name, pin);
   });
 }
 
@@ -223,9 +253,13 @@ function requireOpen_() {
   if (secondsToCutoff_() <= 0) throw new Error('Bestellschluss war um ' + CONFIG.CUTOFF + ' Uhr. Bestellungen können nicht mehr geändert werden.');
 }
 
-function checkPin_(pin) {
+function pinOk_(pin) {
   const expected = PropertiesService.getScriptProperties().getProperty('MANAGER_PIN');
-  if (!expected || String(pin) !== expected) throw new Error('Falsche PIN.');
+  return !!expected && !!pin && String(pin) === expected;
+}
+
+function checkPin_(pin) {
+  if (!pinOk_(pin)) throw new Error('Falsche PIN.');
 }
 
 function today_() {
