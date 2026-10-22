@@ -40,6 +40,7 @@ sieht die gesammelte Liste, das Office-Management pflegt das Menü.
 - **Menü bearbeiten:** Tab *Menü*, PIN eingeben, Namen/Preise ändern, Artikel als nicht verfügbar markieren oder neue hinzufügen, speichern. Zum Löschen eines Artikels die Zeile im Blatt **Menü** entfernen.
 - **Wer sieht was:** Jede Person sieht nur ihre eigene Bestellung. Die ganze Liste mit Namen und Notizen sehen nur die Person, die heute abholt, und das Office-Management (nach Eingabe der PIN im Tab *Menü*).
 - **Löschen nach 30 Tagen:** Jede Nacht gegen 3 Uhr löscht das Skript Bestellungen und Abholungs-Einträge, die älter als 30 Tage sind (`KEEP_DAYS` in `CONFIG`). Den nächtlichen Auftrag legt `setup` an.
+- **Hilfe:** Der Knopf „Hilfe“ oben rechts öffnet das Benutzerhandbuch in der App.
 - **Datenschutz-Hinweis:** In der App unten über „Datenschutz: Was LunchRun speichert“.
 
 ## Grenzen

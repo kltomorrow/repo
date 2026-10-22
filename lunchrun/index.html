@@ -29,6 +29,17 @@
     .sub { font-size: 14px; color: var(--muted); }
     .who { display: flex; flex-direction: column; align-items: flex-end; font-size: 13px; color: var(--muted); }
     .who strong { color: var(--ink); font-size: 14px; }
+    .head-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+    .help-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 2px solid var(--accent); border-radius: 999px; background: var(--surface); color: var(--accent); font-size: 15px; font-weight: 700; }
+    .help { display: flex; flex-direction: column; gap: 12px; font-size: 16px; color: var(--body); }
+    .help h1 { color: var(--ink); }
+    .help h2 { margin-top: 12px; font-size: 20px; color: var(--ink); }
+    .help ol, .help ul { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; }
+    .help strong { color: var(--ink); }
+    .help dl { margin: 0; display: flex; flex-direction: column; gap: 4px; }
+    .help dt { font-weight: 700; color: var(--ink); margin-top: 8px; }
+    .help dd { margin: 0; }
+    .help .link-btn { min-height: 0; padding: 0; font-size: inherit; }
     .link-btn { min-height: 44px; padding: 0 4px; border: 0; background: none; color: var(--accent); font-weight: 700; text-decoration: underline; }
 
     nav { display: flex; border-bottom: 1px solid var(--line); background: var(--surface); }
@@ -134,6 +145,7 @@ var ICONS = {
   lock: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
   na: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>',
   alert: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></svg>',
+  help: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.4M12 17v.01"/></svg>',
   bag: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>'
 };
 var NAME_KEY = 'lunchrun.name';
@@ -144,7 +156,7 @@ var me = null;         // chosen name
 var tab = 'order';     // order | orders | menu
 var selected = null, note = '', changing = false;
 var pin = '', managerPin = '', mItems = null, mErrors = {}, mTried = false;
-var showPrivacy = false;
+var showPrivacy = false, showHelp = false;
 var busy = false, error = '', flash = '', deadline = 0, loadFailed = false;
 
 try { me = localStorage.getItem(NAME_KEY); } catch (e) {}
@@ -210,8 +222,11 @@ function headerView() {
     ? '<div class="who"><span>Angemeldet als</span><strong>' + esc(me) + '</strong>' +
       '<button type="button" class="link-btn" data-action="switchPerson">Nicht du?</button></div>'
     : '';
+  var help = showHelp ? '' :
+    '<button type="button" class="help-btn" data-action="openHelp">' + ICONS.help + 'Hilfe</button>';
   return '<header><div><div class="brand">Lunch<span>Run</span></div>' +
-    '<div class="sub">' + esc(S.shop) + ' · ' + esc(S.dateLabel) + '</div></div>' + who + '</header>';
+    '<div class="sub">' + esc(S.shop) + ' · ' + esc(S.dateLabel) + '</div></div>' +
+    '<div class="head-right">' + help + who + '</div></header>';
 }
 
 function navView() {
@@ -388,6 +403,66 @@ function menuTab() {
     '<button type="button" class="btn plain" data-action="lock">Sperren</button></div>';
 }
 
+function helpView() {
+  var cutoff = esc(S.cutoff) + ' Uhr';
+  return '<button type="button" class="btn plain" data-action="closeHelp">Zurück zur App</button>' +
+    '<div class="help">' +
+    '<h1>Hilfe</h1>' +
+
+    '<h2>Was ist LunchRun?</h2>' +
+    '<p>Mit LunchRun bestellst du dein Mittagessen bis ' + cutoff + ' am Handy. Eine Person holt alles gesammelt ab. Die App hat drei Bereiche:</p>' +
+    '<ul><li><strong>Mein Essen:</strong> bestellen, ändern, stornieren. Für alle.</li>' +
+    '<li><strong>Bestellungen:</strong> sich zum Abholen eintragen und die gesammelte Liste sehen. Die Liste sehen nur die Person, die abholt, und das Office-Management.</li>' +
+    '<li><strong>Menü:</strong> Artikel, Preise und Verfügbarkeit pflegen. Für das Office-Management, mit PIN.</li></ul>' +
+
+    '<h2>Erste Schritte</h2>' +
+    '<ol><li>Den Link am Handy öffnen. Eine Installation ist nicht nötig.</li>' +
+    '<li>Auf den Startbildschirm legen: <strong>iPhone</strong> in Safari Teilen → Zum Home-Bildschirm; <strong>Android</strong> in Chrome ⋮ → Zum Startbildschirm hinzufügen.</li>' +
+    '<li>Bei <strong>Wer bist du?</strong> deinen Namen antippen. Das Handy merkt ihn sich.</li></ol>' +
+    '<p>Oben rechts steht, als wer du angemeldet bist. Mit <strong>Nicht du?</strong> wechselst du die Person.</p>' +
+
+    '<h2>Mittagessen bestellen</h2>' +
+    '<p>Pro Person und Tag gibt es eine Bestellung mit einem Artikel.</p>' +
+    '<ol><li>Tab <strong>Mein Essen</strong> öffnen.</li>' +
+    '<li>Einen Artikel antippen. Er zeigt dann „Ausgewählt“. Artikel mit „Heute nicht verfügbar“ lassen sich nicht wählen.</li>' +
+    '<li>Optional eine <strong>Notiz für die Abholung</strong> eintragen, z. B. „ohne Butter“.</li>' +
+    '<li>Auf <strong>Bestellen</strong> tippen. Du siehst dann die Bestätigung mit dem Betrag, den du der Person zahlst, die abholt.</li></ol>' +
+
+    '<h2>Bestellung ändern oder stornieren</h2>' +
+    '<p>Bis ' + cutoff + ' geht beides im Tab <strong>Mein Essen</strong>:</p>' +
+    '<ul><li><strong>Ändern:</strong> Bestellung ändern → neue Auswahl → Änderung speichern.</li>' +
+    '<li><strong>Stornieren:</strong> Bestellung stornieren. Danach kannst du neu bestellen.</li></ul>' +
+
+    '<h2>Bestellschluss um ' + cutoff + '</h2>' +
+    '<ul><li><strong>Vorher:</strong> Der grüne Kasten zeigt, wie viele Minuten noch bleiben.</li>' +
+    '<li><strong>In den letzten 10 Minuten:</strong> Der Rahmen blinkt rot und grün, darüber steht „Gleich Bestellschluss“.</li>' +
+    '<li><strong>Danach:</strong> Keine Bestellungen oder Änderungen mehr. Zu spät dran? Frag die Person, die heute abholt.</li></ul>' +
+
+    '<h2>Abholen</h2>' +
+    '<ol><li>Tab <strong>Bestellungen</strong> öffnen und auf <strong>Ich hole heute ab</strong> tippen. Pro Tag kann sich eine Person eintragen.</li>' +
+    '<li>Du siehst die Liste nach Artikeln, mit Name, Notiz und Preis je Person und dem Gesamtbetrag.</li>' +
+    '<li>Mit <strong>Liste aktualisieren</strong> holst du den neuesten Stand. Nach dem Bestellschluss ist die Liste endgültig.</li>' +
+    '<li>Kannst du doch nicht? <strong>Ich kann doch nicht</strong> antippen.</li></ol>' +
+
+    '<h2>Menü bearbeiten (Office-Management)</h2>' +
+    '<ol><li>Tab <strong>Menü</strong> öffnen, PIN eingeben, <strong>Entsperren</strong>.</li>' +
+    '<li>Name und Preis ändern (Preis wie 4,50), bei Bedarf <strong>Heute als nicht verfügbar markieren</strong>, mit <strong>Artikel hinzufügen</strong> neue Artikel anlegen.</li>' +
+    '<li><strong>Menü speichern</strong>, danach <strong>Sperren</strong>.</li></ol>' +
+    '<p>Artikel löschen und neue Personen eintragen geht in der Google-Tabelle (Blätter Menü und Personen).</p>' +
+
+    '<h2>Häufige Fragen</h2>' +
+    '<dl>' +
+    '<dt>Die Seite bleibt grau oder zeigt „Keine Antwort vom Server“.</dt><dd>Meist bist du mit mehreren Google-Konten angemeldet. Öffne den Link in einem privaten bzw. Inkognito-Fenster.</dd>' +
+    '<dt>Mein Name fehlt in der Liste.</dt><dd>Das Office-Management trägt dich ein. Danach die App neu laden.</dd>' +
+    '<dt>Ich habe den falschen Namen gewählt.</dt><dd>Oben auf <strong>Nicht du?</strong> tippen und neu wählen.</dd>' +
+    '<dt>Ich sehe die Bestellliste nicht.</dt><dd>Nur die Person, die heute abholt, und das Office-Management sehen sie.</dd>' +
+    '<dt>Am Wochenende läuft der Bestellschluss trotzdem.</dt><dd>LunchRun kennt keine freien Tage. Dann einfach nichts bestellen.</dd>' +
+    '</dl>' +
+    '<p>Was LunchRun über dich speichert, steht unter <button type="button" class="link-btn" data-action="openPrivacy">Datenschutz</button>.</p>' +
+    '</div>' +
+    '<button type="button" class="btn plain" data-action="closeHelp">Zurück zur App</button>';
+}
+
 function privacyView() {
   return '<h1>Was LunchRun über dich speichert</h1>' +
     '<ul class="privacy">' +
@@ -413,6 +488,7 @@ function render(focusId) {
       : '<p class="lead">Wird geladen…</p>') + '</main>';
     return;
   }
+  if (showHelp && !showPrivacy) { root.innerHTML = headerView() + '<main>' + helpView() + '</main>'; return; }
   if (showPrivacy) { root.innerHTML = headerView() + '<main>' + privacyView() + '</main>'; return; }
   if (!me) { root.innerHTML = headerView() + '<main>' + errorBox() + pickerView() + '</main>' + footerView(); return; }
   var body = tab === 'orders' ? ordersTab() : tab === 'menu' ? menuTab() : orderTab();
@@ -434,6 +510,8 @@ var actions = {
     load();
   },
   openPrivacy: function () { showPrivacy = true; render(); window.scrollTo(0, 0); },
+  openHelp: function () { showHelp = true; render(); window.scrollTo(0, 0); },
+  closeHelp: function () { showHelp = false; render(); window.scrollTo(0, 0); },
   closePrivacy: function () { showPrivacy = false; render(); },
   tab: function (d) { tab = d.tab; error = ''; flash = ''; changing = false; render(); },
   place: function () {
