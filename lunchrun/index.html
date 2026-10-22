@@ -12,7 +12,7 @@
       --line: #D9D4CA; --line-soft: #E6E2D9; --field: #79736A;
       --accent: #1E5B45; --accent-dark: #123B2C; --accent-tint: #E3EFE9;
       --warn: #8A4B00; --warn-dark: #5C3200; --warn-tint: #FBEBD3;
-      --error: #9A2B12; --disabled: #EFECE5; --focus: #1F5FBF;
+      --error: #9A2B12; --urgent: #C62828; --disabled: #EFECE5; --focus: #1F5FBF;
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: var(--ground); color: var(--ink); font: 16px/1.4 Figtree, system-ui, sans-serif; }
@@ -45,6 +45,15 @@
     .banner { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border: 2px solid; border-radius: 14px; font-size: 15px; }
     .banner svg { flex: none; }
     .banner.open { background: var(--accent-tint); border-color: var(--accent); color: var(--accent-dark); }
+    /* Last minutes before the cut-off: the frame blinks red/green once per second (well below the 3 flashes/s seizure limit). */
+    .banner.open.urgent { animation: urgent-blink 1s steps(1, end) infinite; }
+    @keyframes urgent-blink {
+      0% { border-color: var(--urgent); box-shadow: 0 0 0 2px var(--urgent); }
+      50% { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .banner.open.urgent { animation: none; border-color: var(--urgent); box-shadow: 0 0 0 2px var(--urgent); }
+    }
     .banner.closed { background: var(--warn-tint); border-color: var(--warn); color: var(--warn-dark); }
     .banner.error { background: #FBE4DE; border-color: var(--error); color: #6E1E0C; }
     .banner.ok { background: var(--accent-tint); border-color: var(--accent); color: var(--accent-dark); }
@@ -112,6 +121,7 @@ var ICONS = {
   bag: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>'
 };
 var NAME_KEY = 'lunchrun.name';
+var URGENT_MINUTES = 10;   // the time banner blinks during the last minutes before the cut-off
 
 var S = null;          // state from the server
 var me = null;         // chosen name
@@ -134,6 +144,10 @@ function money(n) {
 }
 function minutesLeft() { return Math.max(0, Math.ceil((deadline - Date.now()) / 60000)); }
 function isOpen() { return S.isOpen && Date.now() < deadline; }
+function isUrgent() { return isOpen() && minutesLeft() <= URGENT_MINUTES; }
+function eyebrowText() {
+  return (isUrgent() ? 'Gleich Bestellschluss · ' : 'Offen · Bestellschluss ') + esc(S.cutoff) + ' Uhr';
+}
 function myOrder() { return S.orders.filter(function (o) { return o.name === me; })[0] || null; }
 function itemById(id) { return S.menu.filter(function (i) { return i.id === id; })[0] || null; }
 function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
@@ -192,8 +206,8 @@ function pickerView() {
 
 function openBanner() {
   var runner = S.runner ? S.runner + ' holt heute ab.' : 'Noch hat sich niemand zum Abholen eingetragen.';
-  return '<div class="banner open">' + ICONS.clock + '<div>' +
-    '<span class="eyebrow">Offen · Bestellschluss ' + esc(S.cutoff) + ' Uhr</span>' +
+  return '<div class="banner open' + (isUrgent() ? ' urgent' : '') + '" id="time-banner">' + ICONS.clock + '<div>' +
+    '<span class="eyebrow" id="time-eyebrow">' + eyebrowText() + '</span>' +
     '<span class="big" id="countdown">' + 'Noch ' + plural(minutesLeft(), 'Minute', 'Minuten') + ' zum Bestellen</span>' +
     '<span>' + esc(runner) + '</span></div></div>';
 }
@@ -440,6 +454,11 @@ setInterval(function () {
   if (S.isOpen && Date.now() >= deadline) { load(); return; }
   var c = document.getElementById('countdown');
   if (c) c.textContent = 'Noch ' + plural(minutesLeft(), 'Minute', 'Minuten') + ' zum Bestellen';
+  var b = document.getElementById('time-banner');
+  if (b) {
+    b.classList.toggle('urgent', isUrgent());
+    document.getElementById('time-eyebrow').innerHTML = eyebrowText();
+  }
 }, 15000);
 
 load();
