@@ -3,10 +3,10 @@
  *
  * This script is bound to a Google Sheet (Extensions → Apps Script) and
  * serves index.html as a web app. All data lives in the sheet:
- *   Menu     – the items colleagues can order
- *   People   – everyone who can order (one name per row)
- *   Orders   – one row per person per day
- *   Runners  – who volunteered to collect the order each day
+ *   Menü         – the items colleagues can order
+ *   Personen     – everyone who can order (one name per row)
+ *   Bestellungen – one row per person per day
+ *   Abholung     – who volunteered to collect the order each day
  *
  * Run setup() once from the editor before deploying.
  */
@@ -20,7 +20,7 @@ const CONFIG = {
   DEFAULT_PIN: '1234',        // change it in Project Settings → Script Properties
 };
 
-const SHEETS = { MENU: 'Menu', PEOPLE: 'People', ORDERS: 'Orders', RUNNERS: 'Runners' };
+const SHEETS = { MENU: 'Menü', PEOPLE: 'Personen', ORDERS: 'Bestellungen', RUNNERS: 'Abholung' };
 
 function doGet() {
   return HtmlService.createHtmlOutputFromFile('index')
@@ -33,20 +33,20 @@ function setup() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   ss.setSpreadsheetTimeZone(CONFIG.TIMEZONE);
 
-  ensureSheet_(SHEETS.MENU, ['ID', 'Name', 'Price', 'Available'], [
-    ['ham', 'Ham & mature cheddar', 4.2, true],
-    ['chicken', 'Chicken, bacon & avocado', 5.4, true],
-    ['falafel', 'Falafel & hummus wrap', 4.8, true],
-    ['tuna', 'Tuna melt on sourdough', 4.9, true],
-    ['egg', 'Egg mayo & cress', 3.6, true],
-    ['brie', 'Brie, grape & rocket baguette', 5.1, true],
+  ensureSheet_(SHEETS.MENU, ['ID', 'Name', 'Preis', 'Verfügbar'], [
+    ['schinken', 'Schinken & Bergkäse', 4.2, true],
+    ['haehnchen', 'Hähnchen, Bacon & Avocado', 5.4, true],
+    ['falafel', 'Falafel-Wrap mit Hummus', 4.8, true],
+    ['thunfisch', 'Thunfisch-Toast auf Sauerteig', 4.9, true],
+    ['ei', 'Ei-Mayo mit Kresse', 3.6, true],
+    ['brie', 'Brie-Baguette mit Trauben & Rucola', 5.1, true],
   ]);
   ensureSheet_(SHEETS.PEOPLE, ['Name'], [
     ['Priya Nair'], ['Tom Becker'], ['Aisha Rahman'], ['Jonas Weber'],
     ['Mei Lin'], ['Daniel Osei'], ['Hannah Kowalski'], ['Luis Ortega'],
   ]);
-  ensureSheet_(SHEETS.ORDERS, ['Date', 'Name', 'Item ID', 'Item', 'Note', 'Price', 'Updated'], []);
-  ensureSheet_(SHEETS.RUNNERS, ['Date', 'Name'], []);
+  ensureSheet_(SHEETS.ORDERS, ['Datum', 'Name', 'Artikel-ID', 'Artikel', 'Notiz', 'Preis', 'Geändert'], []);
+  ensureSheet_(SHEETS.RUNNERS, ['Datum', 'Name'], []);
 
   // Keep dates as plain text so "2026-10-22" is not turned into a date value.
   sheet_(SHEETS.ORDERS).getRange('A:A').setNumberFormat('@');
@@ -67,7 +67,7 @@ function getState() {
     cutoff: CONFIG.CUTOFF,
     currency: CONFIG.CURRENCY,
     locale: CONFIG.LOCALE,
-    dateLabel: Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'EEE d MMM'),
+    dateLabel: dateLabel_(),
     timeLabel: Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'HH:mm'),
     secondsLeft: Math.max(0, secondsLeft),
     isOpen: secondsLeft > 0,
@@ -83,7 +83,7 @@ function placeOrder(name, itemId, note) {
     requirePerson_(name);
     requireOpen_();
     const item = menu_().find((i) => i.id === itemId);
-    if (!item || !item.available) throw new Error('That item is not available today. Please choose another.');
+    if (!item || !item.available) throw new Error('Dieser Artikel ist heute nicht verfügbar. Bitte wähle etwas anderes.');
     const values = [today_(), name, item.id, safe_(item.name), safe_(String(note || '').trim().slice(0, 200)), item.price, new Date()];
     const sheet = sheet_(SHEETS.ORDERS);
     const row = findRow_(SHEETS.ORDERS, (r) => dateKey_(r[0]) === today_() && r[1] === name);
@@ -107,7 +107,7 @@ function volunteerAsRunner(name) {
   return withLock_(() => {
     requirePerson_(name);
     const current = runner_();
-    if (current && current !== name) throw new Error(current + ' is already doing the run today.');
+    if (current && current !== name) throw new Error(current + ' holt heute schon ab.');
     if (!current) sheet_(SHEETS.RUNNERS).appendRow([today_(), name]);
     return getState();
   });
@@ -130,13 +130,13 @@ function getMenuForManager(pin) {
 function saveMenu(pin, items) {
   return withLock_(() => {
     checkPin_(pin);
-    if (!Array.isArray(items) || !items.length) throw new Error('The menu needs at least one item.');
+    if (!Array.isArray(items) || !items.length) throw new Error('Das Menü braucht mindestens einen Artikel.');
     const used = {};
     const rows = items.map((it) => {
       const name = String(it.name || '').trim();
       const price = Number(it.price);
-      if (!name) throw new Error('Every item needs a name.');
-      if (!isFinite(price) || price < 0) throw new Error('"' + name + '" needs a valid price.');
+      if (!name) throw new Error('Jeder Artikel braucht einen Namen.');
+      if (!isFinite(price) || price < 0) throw new Error('Für „' + name + '“ fehlt ein gültiger Preis.');
       let id = String(it.id || '').trim() || newId_(name);
       while (used[id]) id += '-2';
       used[id] = true;
@@ -154,7 +154,7 @@ function saveMenu(pin, items) {
 
 function sheet_(name) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
-  if (!sheet) throw new Error('Sheet "' + name + '" is missing. Run setup() once in the script editor.');
+  if (!sheet) throw new Error('Das Blatt „' + name + '“ fehlt. Bitte im Skript-Editor einmal setup() ausführen.');
   return sheet;
 }
 
@@ -216,20 +216,30 @@ function todaysOrders_() {
 }
 
 function requirePerson_(name) {
-  if (people_().indexOf(name) < 0) throw new Error('Your name is not on the list. Ask the office manager to add you.');
+  if (people_().indexOf(name) < 0) throw new Error('Dein Name steht nicht auf der Liste. Bitte das Office-Management, dich im Blatt „Personen“ einzutragen.');
 }
 
 function requireOpen_() {
-  if (secondsToCutoff_() <= 0) throw new Error('Orders closed at ' + CONFIG.CUTOFF + '. Your order can no longer be changed.');
+  if (secondsToCutoff_() <= 0) throw new Error('Bestellschluss war um ' + CONFIG.CUTOFF + ' Uhr. Bestellungen können nicht mehr geändert werden.');
 }
 
 function checkPin_(pin) {
   const expected = PropertiesService.getScriptProperties().getProperty('MANAGER_PIN');
-  if (!expected || String(pin) !== expected) throw new Error('Wrong PIN.');
+  if (!expected || String(pin) !== expected) throw new Error('Falsche PIN.');
 }
 
 function today_() {
   return Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy-MM-dd');
+}
+
+/** e.g. "Do 22. Okt." – Utilities.formatDate only knows English day and month names. */
+function dateLabel_() {
+  const now = new Date();
+  const days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+  const months = ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni', 'Juli', 'Aug.', 'Sep.', 'Okt.', 'Nov.', 'Dez.'];
+  const day = days[Number(Utilities.formatDate(now, CONFIG.TIMEZONE, 'u')) - 1];
+  const month = months[Number(Utilities.formatDate(now, CONFIG.TIMEZONE, 'M')) - 1];
+  return day + ' ' + Utilities.formatDate(now, CONFIG.TIMEZONE, 'd') + '. ' + month;
 }
 
 function dateKey_(value) {

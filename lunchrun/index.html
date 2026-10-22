@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
   <base target="_top">
   <meta charset="utf-8">
@@ -100,7 +100,7 @@
   </style>
 </head>
 <body>
-  <div class="app" id="app"><main><p class="lead">Loading…</p></main></div>
+  <div class="app" id="app"><main><p class="lead">Wird geladen…</p></main></div>
 
 <script>
 var ICONS = {
@@ -136,7 +136,7 @@ function minutesLeft() { return Math.max(0, Math.ceil((deadline - Date.now()) / 
 function isOpen() { return S.isOpen && Date.now() < deadline; }
 function myOrder() { return S.orders.filter(function (o) { return o.name === me; })[0] || null; }
 function itemById(id) { return S.menu.filter(function (i) { return i.id === id; })[0] || null; }
-function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
+function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
 
 function call(fn, args, onOk) {
   busy = true; error = ''; flash = ''; render();
@@ -166,35 +166,35 @@ function errorBox() {
 
 function headerView() {
   var who = me
-    ? '<div class="who"><span>Signed in as</span><strong>' + esc(me) + '</strong>' +
-      '<button type="button" class="link-btn" data-action="switchPerson">Not you?</button></div>'
+    ? '<div class="who"><span>Angemeldet als</span><strong>' + esc(me) + '</strong>' +
+      '<button type="button" class="link-btn" data-action="switchPerson">Nicht du?</button></div>'
     : '';
   return '<header><div><div class="brand">Lunch<span>Run</span></div>' +
     '<div class="sub">' + esc(S.shop) + ' · ' + esc(S.dateLabel) + '</div></div>' + who + '</header>';
 }
 
 function navView() {
-  var tabs = [['order', 'My lunch'], ['orders', "Today's orders"], ['menu', 'Edit menu']];
-  return '<nav aria-label="Sections">' + tabs.map(function (t) {
+  var tabs = [['order', 'Mein Essen'], ['orders', 'Bestellungen'], ['menu', 'Menü']];
+  return '<nav aria-label="Bereiche">' + tabs.map(function (t) {
     return '<button type="button" data-action="tab" data-tab="' + t[0] + '"' +
       (tab === t[0] ? ' aria-current="page"' : '') + '>' + t[1] + '</button>';
   }).join('') + '</nav>';
 }
 
 function pickerView() {
-  return '<h1>Who are you?</h1>' +
-    '<p class="lead">Choose your name. This phone will remember it.</p>' +
+  return '<h1>Wer bist du?</h1>' +
+    '<p class="lead">Wähle deinen Namen. Dieses Handy merkt ihn sich.</p>' +
     '<div class="people">' + S.people.map(function (p) {
       return '<button type="button" data-action="pickPerson" data-name="' + esc(p) + '">' + esc(p) + '</button>';
     }).join('') + '</div>' +
-    '<p class="hint">Not on the list? Ask the office manager to add you to the People sheet.</p>';
+    '<p class="hint">Nicht auf der Liste? Bitte das Office-Management, dich im Blatt „Personen“ einzutragen.</p>';
 }
 
 function openBanner() {
-  var runner = S.runner ? S.runner + ' is today’s runner.' : 'Nobody has signed up as runner yet.';
+  var runner = S.runner ? S.runner + ' holt heute ab.' : 'Noch hat sich niemand zum Abholen eingetragen.';
   return '<div class="banner open">' + ICONS.clock + '<div>' +
-    '<span class="eyebrow">Open · cut-off ' + esc(S.cutoff) + '</span>' +
-    '<span class="big" id="countdown">' + plural(minutesLeft(), 'minute') + ' left to order</span>' +
+    '<span class="eyebrow">Offen · Bestellschluss ' + esc(S.cutoff) + ' Uhr</span>' +
+    '<span class="big" id="countdown">' + 'Noch ' + plural(minutesLeft(), 'Minute', 'Minuten') + ' zum Bestellen</span>' +
     '<span>' + esc(runner) + '</span></div></div>';
 }
 
@@ -208,21 +208,21 @@ function menuView() {
       '<input type="radio" name="item" id="item-' + esc(i.id) + '" value="' + esc(i.id) + '"' +
       (checked ? ' checked' : '') + (i.available ? '' : ' disabled') + '>' +
       '<span class="text"><span class="name">' + esc(i.name) + '</span>' +
-      (i.available ? '' : '<span class="tag na">' + ICONS.na + 'Unavailable today</span>') +
-      (checked ? '<span class="tag sel">' + ICONS.check + 'Selected</span>' : '') +
+      (i.available ? '' : '<span class="tag na">' + ICONS.na + 'Heute nicht verfügbar</span>') +
+      (checked ? '<span class="tag sel">' + ICONS.check + 'Ausgewählt</span>' : '') +
       '</span><span class="price">' + money(i.price) + '</span></label>';
   }).join('');
   return openBanner() +
-    '<fieldset><legend>Today’s menu</legend>' + items + '</fieldset>' +
-    '<div class="field"><label for="note">Note for the runner (optional)</label>' +
-    '<span class="hint" id="note-hint">For example: no butter, brown bread, cut in half.</span>' +
+    '<fieldset><legend>Heutiges Menü</legend>' + items + '</fieldset>' +
+    '<div class="field"><label for="note">Notiz für die Abholung (optional)</label>' +
+    '<span class="hint" id="note-hint">Zum Beispiel: ohne Butter, Vollkornbrot, halbiert.</span>' +
     '<textarea id="note" aria-describedby="note-hint" maxlength="200" rows="3">' + esc(note) + '</textarea></div>' +
     '<div class="bar">' + errorBox() +
-    '<div class="row lead"><span>' + (sel ? '1 × ' + esc(sel.name) : 'Nothing selected yet') + '</span>' +
+    '<div class="row lead"><span>' + (sel ? '1 × ' + esc(sel.name) : 'Noch nichts ausgewählt') + '</span>' +
     '<strong>' + money(sel ? sel.price : 0) + '</strong></div>' +
     '<button type="button" class="btn" data-action="place"' + (busy ? ' disabled' : '') + '>' +
-    (busy ? 'Placing order…' : (changing ? 'Update order' : 'Place order')) + '</button>' +
-    (changing ? '<button type="button" class="btn plain" data-action="cancelChange">Keep my current order</button>' : '') +
+    (busy ? 'Wird bestellt…' : (changing ? 'Änderung speichern' : 'Bestellen')) + '</button>' +
+    (changing ? '<button type="button" class="btn plain" data-action="cancelChange">Bisherige Bestellung behalten</button>' : '') +
     '</div>';
 }
 
@@ -231,29 +231,29 @@ function confirmedView(o) {
   return errorBox() +
     '<div style="display:flex;flex-direction:column;gap:10px">' +
     '<span class="circle" style="background:var(--accent);color:#fff">' + ICONS.check.replace(/18/g, '30') + '</span>' +
-    '<h1>Order confirmed</h1>' +
-    '<p class="lead">' + (S.runner ? esc(S.runner) + ' will collect it with everyone else’s order.'
-      : 'It will be collected with everyone else’s order once someone signs up as runner.') + '</p></div>' +
-    '<div class="card"><div class="eyebrow" style="color:var(--muted)">Your order</div>' +
+    '<h1>Bestellung bestätigt</h1>' +
+    '<p class="lead">' + (S.runner ? esc(S.runner) + ' holt sie zusammen mit den anderen Bestellungen ab.'
+      : 'Sie wird mit den anderen Bestellungen abgeholt, sobald sich jemand zum Abholen einträgt.') + '</p></div>' +
+    '<div class="card"><div class="eyebrow" style="color:var(--muted)">Deine Bestellung</div>' +
     '<div class="row"><strong style="font-size:17px">' + esc(o.item) + '</strong><strong style="font-size:17px">' + money(o.price) + '</strong></div>' +
-    '<div><div class="hint" style="font-weight:600">Note for the runner</div>' +
-    (o.note ? '<div>' + esc(o.note) + '</div>' : '<div class="muted-note">No note</div>') + '</div>' +
-    '<div class="row" style="font-size:18px;font-weight:800"><span>Total to pay ' + esc(S.runner || 'the runner') + '</span><span>' + money(o.price) + '</span></div></div>' +
+    '<div><div class="hint" style="font-weight:600">Notiz für die Abholung</div>' +
+    (o.note ? '<div>' + esc(o.note) + '</div>' : '<div class="muted-note">Keine Notiz</div>') + '</div>' +
+    '<div class="row" style="font-size:18px;font-weight:800"><span>' + (S.runner ? 'Zu zahlen an ' + esc(S.runner) : 'Zu zahlen bei Abholung') + '</span><span>' + money(o.price) + '</span></div></div>' +
     (open
-      ? '<p class="lead">You can change or cancel your order until ' + esc(S.cutoff) + '.</p>' +
-        '<button type="button" class="btn secondary" data-action="change">Change order</button>' +
-        '<button type="button" class="btn plain" data-action="cancelOrder"' + (busy ? ' disabled' : '') + '>Cancel my order</button>'
-      : '<div class="banner closed">' + ICONS.lock + '<span><strong>Orders are closed.</strong> Your order is locked in and can no longer be changed.</span></div>');
+      ? '<p class="lead">Du kannst deine Bestellung bis ' + esc(S.cutoff) + ' Uhr ändern oder stornieren.</p>' +
+        '<button type="button" class="btn secondary" data-action="change">Bestellung ändern</button>' +
+        '<button type="button" class="btn plain" data-action="cancelOrder"' + (busy ? ' disabled' : '') + '>Bestellung stornieren</button>'
+      : '<div class="banner closed">' + ICONS.lock + '<span><strong>Bestellschluss ist vorbei.</strong> Deine Bestellung steht fest und kann nicht mehr geändert werden.</span></div>');
 }
 
 function closedView() {
   return errorBox() +
     '<span class="circle" style="background:var(--warn-tint);border:2px solid var(--warn);color:var(--warn)">' + ICONS.lock + '</span>' +
-    '<div><div class="eyebrow" style="color:var(--warn)">Closed since ' + esc(S.cutoff) + '</div>' +
-    '<h1>Orders are closed for today</h1></div>' +
-    '<p class="lead" style="font-size:17px">Orders close at ' + esc(S.cutoff) + ' so the runner can send one combined order to ' + esc(S.shop) + ' in time for lunch.</p>' +
-    '<p class="lead" style="font-size:17px">You didn’t place an order today. If you still need lunch, ask ' +
-    esc(S.runner || 'today’s runner') + ' before they leave. They may be able to add it at the counter.</p>';
+    '<div><div class="eyebrow" style="color:var(--warn)">Geschlossen seit ' + esc(S.cutoff) + ' Uhr</div>' +
+    '<h1>Für heute ist Bestellschluss</h1></div>' +
+    '<p class="lead" style="font-size:17px">Bestellschluss ist um ' + esc(S.cutoff) + ' Uhr, damit eine gemeinsame Bestellung rechtzeitig an ' + esc(S.shop) + ' geht.</p>' +
+    '<p class="lead" style="font-size:17px">Du hast heute nichts bestellt. Wenn du trotzdem etwas möchtest, frag ' +
+    esc(S.runner || 'die Person, die heute abholt') + ' vor dem Losgehen. Vielleicht lässt es sich im Laden noch dazubestellen.</p>';
 }
 
 function orderTab() {
@@ -267,15 +267,15 @@ function ordersTab() {
   var open = isOpen();
   var runnerBox;
   if (!S.runner) {
-    runnerBox = '<div class="card"><div><h2>Nobody is doing the run yet</h2>' +
-      '<p class="lead">The runner collects everyone’s lunch and pays the shop.</p></div>' +
-      '<div><button type="button" class="btn" style="width:100%" data-action="volunteer"' + (busy ? ' disabled' : '') + '>I’ll do the run today</button></div></div>';
+    runnerBox = '<div class="card"><div><h2>Noch holt niemand ab</h2>' +
+      '<p class="lead">Wer abholt, sammelt das Essen für alle ein und bezahlt im Laden.</p></div>' +
+      '<div><button type="button" class="btn" style="width:100%" data-action="volunteer"' + (busy ? ' disabled' : '') + '>Ich hole heute ab</button></div></div>';
   } else if (S.runner === me) {
-    runnerBox = '<div class="card"><div><h2>You’re today’s runner</h2>' +
-      '<p class="lead">Thanks! Collect the orders below and pay the shop.</p></div>' +
-      '<div><button type="button" class="btn plain" style="width:100%" data-action="stepDown"' + (busy ? ' disabled' : '') + '>I can’t do it after all</button></div></div>';
+    runnerBox = '<div class="card"><div><h2>Du holst heute ab</h2>' +
+      '<p class="lead">Danke! Hol die Bestellungen unten ab und bezahl im Laden.</p></div>' +
+      '<div><button type="button" class="btn plain" style="width:100%" data-action="stepDown"' + (busy ? ' disabled' : '') + '>Ich kann doch nicht</button></div></div>';
   } else {
-    runnerBox = '<div class="card"><div class="row"><span>Today’s runner</span><strong>' + esc(S.runner) + '</strong></div></div>';
+    runnerBox = '<div class="card"><div class="row"><span>Heute holt ab</span><strong>' + esc(S.runner) + '</strong></div></div>';
   }
 
   var groups = [], byKey = {};
@@ -291,21 +291,21 @@ function ordersTab() {
     return '<section class="card"><div class="head"><h2>' + esc(g.name) + '</h2><strong>' + g.orders.length + ' ×</strong></div>' +
       g.orders.map(function (o) {
         return '<div class="row"><div><div style="font-weight:600">' + esc(o.name) + '</div>' +
-          (o.note ? '<div class="hint" style="color:var(--ink)">Note: ' + esc(o.note) + '</div>' : '<div class="hint muted-note">Note: none</div>') +
+          (o.note ? '<div class="hint" style="color:var(--ink)">Notiz: ' + esc(o.note) + '</div>' : '<div class="hint muted-note">Notiz: keine</div>') +
           '</div><span style="font-weight:600">' + money(o.price) + '</span></div>';
       }).join('') +
-      '<div class="row" style="font-weight:700;color:var(--body)"><span>Subtotal</span><span>' + money(sub) + '</span></div></section>';
+      '<div class="row" style="font-weight:700;color:var(--body)"><span>Zwischensumme</span><span>' + money(sub) + '</span></div></section>';
   }).join('');
 
   return errorBox() +
-    '<div><h1>Today’s orders</h1><p class="lead">' + plural(S.orders.length, 'order') + ' from ' + esc(S.shop) + '.</p></div>' +
+    '<div><h1>Heutige Bestellungen</h1><p class="lead">' + plural(S.orders.length, 'Bestellung', 'Bestellungen') + ' bei ' + esc(S.shop) + '.</p></div>' +
     (open
-      ? '<div class="banner open">' + ICONS.clock + '<span><strong>Still open · ' + plural(minutesLeft(), 'min') + ' left.</strong> This list may change until ' + esc(S.cutoff) + '.</span></div>'
-      : '<div class="banner closed">' + ICONS.lock + '<span><strong>Closed · final list.</strong> Ready to send to the shop.</span></div>') +
+      ? '<div class="banner open">' + ICONS.clock + '<span><strong>Noch offen · ' + plural(minutesLeft(), 'Min.', 'Min.') + ' übrig.</strong> Die Liste kann sich bis ' + esc(S.cutoff) + ' Uhr noch ändern.</span></div>'
+      : '<div class="banner closed">' + ICONS.lock + '<span><strong>Geschlossen · endgültige Liste.</strong> Bereit zum Bestellen im Laden.</span></div>') +
     runnerBox +
-    (list || '<p class="lead">No orders yet.</p>') +
-    '<div class="total"><span style="display:flex;flex-direction:column"><span class="label">Total</span><span class="sub">' + plural(S.orders.length, 'order') + '</span></span><span class="sum">' + money(total) + '</span></div>' +
-    '<button type="button" class="btn plain" data-action="refresh"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Refreshing…' : 'Refresh list') + '</button>';
+    (list || '<p class="lead">Noch keine Bestellungen.</p>') +
+    '<div class="total"><span style="display:flex;flex-direction:column"><span class="label">Gesamt</span><span class="sub">' + plural(S.orders.length, 'Bestellung', 'Bestellungen') + '</span></span><span class="sum">' + money(total) + '</span></div>' +
+    '<button type="button" class="btn plain" data-action="refresh"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Wird aktualisiert…' : 'Liste aktualisieren') + '</button>';
 }
 
 function parsePrice(s) {
@@ -315,41 +315,41 @@ function parsePrice(s) {
 
 function menuTab() {
   if (!mItems) {
-    return '<div><h1>Edit menu</h1><p class="lead">For the office manager. Enter the PIN to change names, prices and availability.</p></div>' +
+    return '<div><h1>Menü bearbeiten</h1><p class="lead">Für das Office-Management. Mit der PIN lassen sich Namen, Preise und Verfügbarkeit ändern.</p></div>' +
       errorBox() +
-      '<div class="field"><label for="pin">Manager PIN</label>' +
+      '<div class="field"><label for="pin">PIN</label>' +
       '<input type="password" id="pin" inputmode="numeric" autocomplete="off" value="' + esc(pin) + '"></div>' +
-      '<button type="button" class="btn" data-action="unlock"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Checking…' : 'Unlock') + '</button>';
+      '<button type="button" class="btn" data-action="unlock"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Wird geprüft…' : 'Entsperren') + '</button>';
   }
   var cards = mItems.map(function (it, idx) {
     var badPrice = mTried && parsePrice(it.price) === null;
     var badName = mTried && !String(it.name).trim();
     return '<div class="card"><div style="display:flex;flex-direction:column;gap:12px">' +
-      '<div class="row" style="align-items:center"><span class="eyebrow" style="color:var(--muted)">Item ' + (idx + 1) + '</span>' +
-      (it.available ? '<span class="badge on">' + ICONS.check.replace(/18/g, '14') + 'On the menu</span>'
-                    : '<span class="badge off">' + ICONS.na.replace(/16/g, '14') + 'Unavailable</span>') + '</div>' +
+      '<div class="row" style="align-items:center"><span class="eyebrow" style="color:var(--muted)">Artikel ' + (idx + 1) + '</span>' +
+      (it.available ? '<span class="badge on">' + ICONS.check.replace(/18/g, '14') + 'Im Angebot</span>'
+                    : '<span class="badge off">' + ICONS.na.replace(/16/g, '14') + 'Nicht verfügbar</span>') + '</div>' +
       '<div class="field"><label for="name-' + idx + '">Name</label>' +
       '<input type="text" id="name-' + idx + '" data-idx="' + idx + '" data-field="name" value="' + esc(it.name) + '"' + (badName ? ' aria-invalid="true"' : '') + '>' +
-      (badName ? '<span class="field-error">' + ICONS.alert.replace(/22/g, '16') + 'Enter a name</span>' : '') + '</div>' +
-      '<div class="field"><label for="price-' + idx + '">Price</label>' +
+      (badName ? '<span class="field-error">' + ICONS.alert.replace(/22/g, '16') + 'Bitte einen Namen eingeben</span>' : '') + '</div>' +
+      '<div class="field"><label for="price-' + idx + '">Preis</label>' +
       '<input type="text" class="price-input" id="price-' + idx + '" inputmode="decimal" data-idx="' + idx + '" data-field="price" value="' + esc(it.price) + '"' + (badPrice ? ' aria-invalid="true"' : '') + '>' +
-      (badPrice ? '<span class="field-error">' + ICONS.alert.replace(/22/g, '16') + 'Enter a price like 4.50</span>' : '') + '</div>' +
+      (badPrice ? '<span class="field-error">' + ICONS.alert.replace(/22/g, '16') + 'Bitte einen Preis wie 4,50 eingeben</span>' : '') + '</div>' +
       '<label class="check"><input type="checkbox" id="avail-' + idx + '" data-idx="' + idx + '" data-field="unavailable"' + (it.available ? '' : ' checked') + '>' +
-      '<span>Mark as unavailable today</span></label></div></div>';
+      '<span>Heute als nicht verfügbar markieren</span></label></div></div>';
   }).join('');
-  return '<div><h1>Edit menu</h1><p class="lead">Changes show on everyone’s menu after you save.</p></div>' +
+  return '<div><h1>Menü bearbeiten</h1><p class="lead">Änderungen erscheinen nach dem Speichern bei allen.</p></div>' +
     errorBox() + cards +
-    '<button type="button" class="btn plain" data-action="addItem">Add an item</button>' +
-    '<div class="bar"><button type="button" class="btn" data-action="saveMenu"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Saving…' : 'Save menu') + '</button>' +
-    '<button type="button" class="btn plain" data-action="lock">Lock</button></div>';
+    '<button type="button" class="btn plain" data-action="addItem">Artikel hinzufügen</button>' +
+    '<div class="bar"><button type="button" class="btn" data-action="saveMenu"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Wird gespeichert…' : 'Menü speichern') + '</button>' +
+    '<button type="button" class="btn plain" data-action="lock">Sperren</button></div>';
 }
 
 function render(focusId) {
   var root = document.getElementById('app');
   if (!S) {
     root.innerHTML = '<main>' + (loadFailed
-      ? errorBox() + '<button type="button" class="btn" data-action="refresh">Try again</button>'
-      : '<p class="lead">Loading…</p>') + '</main>';
+      ? errorBox() + '<button type="button" class="btn" data-action="refresh">Erneut versuchen</button>'
+      : '<p class="lead">Wird geladen…</p>') + '</main>';
     return;
   }
   if (!me) { root.innerHTML = headerView() + '<main>' + errorBox() + pickerView() + '</main>'; return; }
@@ -373,7 +373,7 @@ var actions = {
   tab: function (d) { tab = d.tab; error = ''; flash = ''; changing = false; render(); },
   place: function () {
     var sel = itemById(selected);
-    if (!sel || !sel.available) { error = 'Choose an item before placing your order.'; render(); return; }
+    if (!sel || !sel.available) { error = 'Bitte wähle zuerst etwas aus.'; render(); return; }
     call('placeOrder', [me, sel.id, note], function (st) { setState(st); changing = false; });
   },
   change: function () {
@@ -382,13 +382,13 @@ var actions = {
   },
   cancelChange: function () { changing = false; error = ''; render(); },
   cancelOrder: function () {
-    call('cancelOrder', [me], function (st) { setState(st); selected = null; note = ''; flash = 'Your order was cancelled.'; });
+    call('cancelOrder', [me], function (st) { setState(st); selected = null; note = ''; flash = 'Deine Bestellung wurde storniert.'; });
   },
   volunteer: function () { call('volunteerAsRunner', [me], setState); },
   stepDown: function () { call('stepDownAsRunner', [me], setState); },
   refresh: function () { load(); },
   unlock: function () {
-    if (!pin) { error = 'Enter the PIN.'; render('pin'); return; }
+    if (!pin) { error = 'Bitte die PIN eingeben.'; render('pin'); return; }
     call('getMenuForManager', [pin], function (items) { mItems = toEditable(items); mTried = false; });
   },
   addItem: function () {
@@ -398,17 +398,17 @@ var actions = {
   saveMenu: function () {
     mTried = true;
     var bad = mItems.some(function (it) { return !String(it.name).trim() || parsePrice(it.price) === null; });
-    if (bad) { error = 'Some items need fixing before you can save.'; render(); return; }
+    if (bad) { error = 'Bitte korrigiere die markierten Felder vor dem Speichern.'; render(); return; }
     var payload = mItems.map(function (it) {
       return { id: it.id, name: String(it.name).trim(), price: parsePrice(it.price), available: it.available };
     });
-    call('saveMenu', [pin, payload], function (st) { setState(st); mItems = toEditable(st.menu); mTried = false; flash = 'Menu saved.'; });
+    call('saveMenu', [pin, payload], function (st) { setState(st); mItems = toEditable(st.menu); mTried = false; flash = 'Menü gespeichert.'; });
   },
   lock: function () { mItems = null; pin = ''; mTried = false; error = ''; render(); }
 };
 
 function toEditable(items) {
-  return items.map(function (i) { return { id: i.id, name: i.name, price: i.price.toFixed(2), available: i.available }; });
+  return items.map(function (i) { return { id: i.id, name: i.name, price: i.price.toFixed(2).replace('.', ','), available: i.available }; });
 }
 
 document.addEventListener('click', function (e) {
@@ -439,7 +439,7 @@ setInterval(function () {
   if (!S || busy) return;
   if (S.isOpen && Date.now() >= deadline) { load(); return; }
   var c = document.getElementById('countdown');
-  if (c) c.textContent = plural(minutesLeft(), 'minute') + ' left to order';
+  if (c) c.textContent = 'Noch ' + plural(minutesLeft(), 'Minute', 'Minuten') + ' zum Bestellen';
 }, 15000);
 
 load();
